@@ -1,6 +1,6 @@
 import { useWeb3Modal } from "@web3modal/react";
 import { useState } from "react";
-import { useAccount, useDisconnect } from "wagmi";
+import { useAccount, useDisconnect, useSignMessage } from "wagmi";
 import { ethers } from "ethers";
 import { useMountedState } from "react-use";
 
@@ -17,8 +17,9 @@ export default function Home() {
     onConnect: (data) => console.log("connected", data),
     onDisconnect: () => console.log("disconnected"),
   });
+  const wagmiSigner = useSignMessage();
 
-  const handleSignWithClient = async () => {
+  const handleSignWithViem = async () => {
     try {
       const client = await account.connector!.getWalletClient();
       const sig = await client!.signMessage({
@@ -30,7 +31,7 @@ export default function Home() {
     }
   };
 
-  const handleSignWithProvider = async () => {
+  const handleSignWithEthers = async () => {
     try {
       const ap = await account.connector!.getProvider();
       const provider = new ethers.BrowserProvider(ap, "any");
@@ -43,12 +44,34 @@ export default function Home() {
     }
   };
 
+  const handleSignWithWagmi = async () => {
+    try {
+      const sig = await wagmiSigner.signMessageAsync({
+        message: messageToSign,
+      });
+      setSignature(sig);
+    } catch (err) {
+      setErrorMessage((err as Error).message);
+    }
+  };
+
   return (
     <main className="pt-10">
       {errorMessage && <div className="mb-10">{errorMessage}</div>}
       {signature && <div className="mb-10">{signature}</div>}
       {isMounted() && (
         <div>
+          <h3 className="mb-10">
+            {signature ? (
+              "Congratulation it worked! you signed a message."
+            ) : (
+              <>
+                {account.isConnected
+                  ? "Please sign a message"
+                  : "Please connect an account"}
+              </>
+            )}
+          </h3>
           {!account.isConnected && (
             <div className="mb-10">
               <button
@@ -63,9 +86,9 @@ export default function Home() {
             <div className="mb-10">
               <button
                 className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full"
-                onClick={handleSignWithClient}
+                onClick={handleSignWithViem}
               >
-                Sign message using client (viem)
+                Sign message using viem
               </button>
             </div>
           )}
@@ -73,9 +96,19 @@ export default function Home() {
             <div className="mb-10">
               <button
                 className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full"
-                onClick={handleSignWithProvider}
+                onClick={handleSignWithEthers}
               >
-                Sign message using provider (ethers)
+                Sign message using ethers
+              </button>
+            </div>
+          )}
+          {account.isConnected && (
+            <div className="mb-10">
+              <button
+                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-full"
+                onClick={handleSignWithWagmi}
+              >
+                Sign message using wagmi
               </button>
             </div>
           )}
